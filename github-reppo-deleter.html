@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Repository Manager Tool</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #24292e;
+        }
+        h1 {
+            border-bottom: 1px solid #eaecef;
+            padding-bottom: 10px;
+        }
+        .container {
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #2ea44f;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #2c974b;
+        }
+        button.delete {
+            background-color: #d73a49;
+        }
+        button.delete:hover {
+            background-color: #cb2431;
+        }
+        button.visibility {
+            background-color: #0366d6;
+        }
+        button.visibility:hover {
+            background-color: #0255af;
+        }
+        button:disabled {
+            background-color: #94d3a2;
+            cursor: not-allowed;
+        }
+        button.delete:disabled {
+            background-color: #e68891;
+        }
+        button.visibility:disabled {
+            background-color: #79b8ff;
+        }
+        .repo-list {
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        .repo-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #eaecef;
+            display: flex;
+            align-items: center;
+        }
+        .repo-item:last-child {
+            border-bottom: none;
+        }
+        .repo-item:hover {
+            background-color: #f1f8ff;
+        }
+        .repo-checkbox {
+            margin-right: 15px;
+        }
+        .repo-info {
+            flex-grow: 1;
+        }
+        .repo-name {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+        }
+        .repo-date {
+            color: #586069;
+            font-size: 12px;
+            margin-right: 15px;
+        }
+        .repo-description {
+            color: #586069;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .repo-visibility {
+            margin-left: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: normal;
+        }
+        .repo-public {
+            background-color: #e6f1ff;
+            color: #0366d6;
+        }
+        .repo-private {
+            background-color: #ffeef0;
+            color: #d73a49;
+        }
+        .filter-options {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .search-box {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .status-bar {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #f1f8ff;
+            display: none;
+        }
+        .error {
+            color: #d73a49;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #ffeef0;
+            border-radius: 4px;
+            display: none;
+        }
+        .controls {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .selection-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .action-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #2ea44f;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .summary {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+        .confirmation-dialog {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            display: none;
+        }
+        .dialog-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+        }
+        .dialog-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .dialog-body {
+            margin-bottom: 20px;
+        }
+        .dialog-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .repo-list-container {
+            position: relative;
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            display: none;
+        }
+        .progress-bar-container {
+            width: 100%;
+            height: 10px;
+            background-color: #eaecef;
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #2ea44f;
+            width: 0%;
+            transition: width 0.3s;
+        }
+        .sort-options {
+            margin-left: 10px;
+        }
+        .toggle-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 5px;
+            font-size: 11px;
+            border-radius: 3px;
+            margin-left: 5px;
+        }
+        .badge-pro {
+            background-color: #f1e05a;
+            color: #24292e;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e1e4e8;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 2px solid #0366d6;
+            font-weight: bold;
+        }
+        .tab:hover:not(.active) {
+            border-bottom-color: #e1e4e8;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .filter-tag {
+            padding: 3px 8px;
+            background-color: #e1e4e8;
+            border-radius: 3px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .filter-tag .remove {
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .filter-tag .remove:hover {
+            color: #d73a49;
+        }
+        @media (max-width: 768px) {
+            .controls {
+                flex-direction: column;
+            }
+            .selection-group, .action-group {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>GitHub Repository Manager Tool</h1>
+    <div class="container">
+        <label for="github-token">GitHub Personal Access Token (with delete_repo and repo permissions):</label>
+        <input type="password" id="github-token" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxx">
+        
+        <div class="error" id="token-error"></div>
+        
+        <button id="fetch-repos">Fetch Repository List</button>
+        <span id="user-info"></span>
+    </div>
+    <div id="repo-container" style="display: none;">
+        <div class="container">
+            <div class="tabs">
+                <div class="tab active" data-tab="all">All</div>
+                <div class="tab" data-tab="public">Public</div>
+                <div class="tab" data-tab="private">Private</div>
+                <div class="tab" data-tab="forks">Forks</div>
+                <div class="tab" data-tab="archived">Archived</div>
+                <div class="tab" data-tab="empty">Empty Repos</div>
+            </div>
+            
+            <div class="filter-options">
+                <input type="text" class="search-box" id="search-repos" placeholder="Search repositories...">
+                <div class="sort-options">
+                    <label>
+                        <input type="radio" name="sort" value="updated" checked> Recently Updated
+                    </label>
+                    <label>
+                        <input type="radio" name="sort" value="created"> Recently Created
+                    </label>
+                    <label>
+                        <input type="radio" name="sort" value="name"> Name A-Z
+                    </label>
+                </div>
+            </div>
+            
+            <div class="filter-bar" id="filter-bar" style="display: none;">
+                <!-- Filter tags will be added here dynamically -->
+            </div>
+            
+            <div class="repo-list-container">
+                <div class="loading-overlay" id="loading-overlay">
+                    <div>
+                        <div class="loading"></div>
+                        <span id="loading-text">Processing...</span>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progress-bar"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <div class="selection-group">
+                        <button id="select-all">Select All</button>
+                        <button id="select-none">Deselect All</button>
+                        <button id="select-forks">Select Forks</button>
+                        <button id="select-empty">Select Empty Repos</button>
+                        <button id="select-archived">Select Archived Repos</button>
+                        <button id="select-public">Select Public</button>
+                        <button id="select-private">Select Private</button>
+                    </div>
+                    <div class="action-group">
+                        <button class="visibility" id="toggle-visibility" disabled>Toggle Public/Private (0)</button>
+                        <button class="delete" id="delete-selected" disabled>Delete Selected Repos (0)</button>
+                    </div>
+                </div>
+
+                <div class="repo-list" id="repo-list">
+                    <div style="padding: 20px; text-align: center;">
+                        Enter your GitHub token and click "Fetch Repository List"
+                    </div>
+                </div>
+
+                <div class="summary" id="summary"></div>
+                <div class="status-bar" id="status-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="confirmation-dialog" id="confirmation-dialog">
+        <div class="dialog-content">
+            <div class="dialog-title" id="dialog-title">Confirm repository deletion</div>
+            <div class="dialog-body" id="confirmation-message">
+                Are you sure you want to delete the selected repositories? This action cannot be undone.
+            </div>
+            <div class="dialog-actions" id="dialog-actions">
+                <button id="cancel-action">Cancel</button>
+                <button class="delete" id="confirm-action">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Variables and constants
+        const githubApiBaseUrl = 'https://api.github.com';
+        let allRepositories = [];
+        let filteredRepositories = [];
+        let currentUser = null;
+        let isProcessing = false;
+        let currentTab = 'all';
+        let currentAction = null;
+        let activeFilters = new Set();
+        
+        // Check token permissions
+        const TOKEN_SCOPES = {
+            DELETE_REPO: 'delete_repo',
+            REPO: 'repo'
+        };
+
+        // DOM elements
+        const tokenInput = document.getElementById('github-token');
+        const fetchReposButton = document.getElementById('fetch-repos');
+        const tokenError = document.getElementById('token-error');
+        const repoContainer = document.getElementById('repo-container');
+        const repoList = document.getElementById('repo-list');
+        const userInfo = document.getElementById('user-info');
+        const statusBar = document.getElementById('status-bar');
+        const deleteSelectedButton = document.getElementById('delete-selected');
+        const toggleVisibilityButton = document.getElementById('toggle-visibility');
+        const selectAllButton = document.getElementById('select-all');
+        const selectNoneButton = document.getElementById('select-none');
+        const selectForksButton = document.getElementById('select-forks');
+        const selectEmptyButton = document.getElementById('select-empty');
+        const selectArchivedButton = document.getElementById('select-archived');
+        const selectPublicButton = document.getElementById('select-public');
+        const selectPrivateButton = document.getElementById('select-private');
+        const searchInput = document.getElementById('search-repos');
+        const summaryElement = document.getElementById('summary');
+        const confirmationDialog = document.getElementById('confirmation-dialog');
+        const dialogTitle = document.getElementById('dialog-title');
+        const dialogActions = document.getElementById('dialog-actions');
+        const confirmationMessage = document.getElementById('confirmation-message');
+        const cancelActionButton = document.getElementById('cancel-action');
+        const confirmActionButton = document.getElementById('confirm-action');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingText = document.getElementById('loading-text');
+        const progressBar = document.getElementById('progress-bar');
+        const sortOptions = document.getElementsByName('sort');
+        const tabs = document.querySelectorAll('.tab');
+        const filterBar = document.getElementById('filter-bar');
+    
+    // Function to send API requests to GitHub
+    async function fetchFromGitHub(endpoint, method = 'GET', body = null) {
+            const token = tokenInput.value.trim();
+            if (!token) {
+                throw new Error('GitHub token not provided');
+            }
+
+            const headers = {
+                'Authorization': `token ${token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            };
+
+            const options = {
+                method,
+                headers
+            };
+
+            if (body && method !== 'GET') {
+                options.body = JSON.stringify(body);
+            }
+
+            const response = await fetch(`${githubApiBaseUrl}${endpoint}`, options);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(`GitHub API error: ${response.status} - ${errorData.message || response.statusText}`);
+            }
+
+            // Pagination handling
+            let data;
+            if (method === 'GET') {
+                data = await response.json();
+                
+                // Check if there is a link header for pagination
+                const linkHeader = response.headers.get('Link');
+                if (linkHeader && linkHeader.includes('rel="next"')) {
+                    // Get the next page URL
+                    const nextUrl = linkHeader.split(',')
+                        .find(part => part.includes('rel="next"'))
+                        .split(';')[0]
+                        .trim()
+                        .replace(/<(.*)>/, '$1')
+                        .replace(githubApiBaseUrl, '');
+                    
+                    // Get data from the next page and concatenate results
+                    const nextPageData = await fetchFromGitHub(nextUrl);
+                    if (Array.isArray(data) && Array.isArray(nextPageData)) {
+                        data = [...data, ...nextPageData];
+                    }
+                }
+            } else if (response.status === 204) {
+                // No content (usually the result of DELETE)
+                data = { success: true };
+            } else {
+                data = await response.json();
+            }
+
+            return data;
+        }
+
+        // Function to get current user information
+        async function fetchCurrentUser() {
+            try {
+                currentUser = await fetchFromGitHub('/user');
+                userInfo.textContent = `Logged in as: ${currentUser.login}`;
+                return currentUser;
+            } catch (error) {
+                showError(error.message);
+                return null;
+            }
+        }
+
+        // Function to get repository list
+        async function fetchRepositories() {
+            try {
+                showLoading('Fetching repositories list...');
+                
+                // Get all user repositories (pagination handled automatically in fetchFromGitHub)
+                allRepositories = await fetchFromGitHub('/user/repos?per_page=100');
+                
+                hideLoading();
+                repoContainer.style.display = 'block';
+                
+                // Display summary information
+                updateSummary();
+                
+                // Sort and display repositories
+                updateActiveTab();
+                
+                return allRepositories;
+            } catch (error) {
+                hideLoading();
+                showError(error.message);
+                return [];
+            }
+        }
+
+        // Update summary information
+        function updateSummary() {
+            if (!allRepositories.length) return;
+            
+            const totalRepos = allRepositories.length;
+            const publicRepos = allRepositories.filter(repo => !repo.private).length;
+            const privateRepos = allRepositories.filter(repo => repo.private).length;
+            const forksCount = allRepositories.filter(repo => repo.fork).length;
+            const emptyRepos = allRepositories.filter(repo => !repo.size).length;
+            const archivedRepos = allRepositories.filter(repo => repo.archived).length;
+            
+            summaryElement.innerHTML = `Total: ${totalRepos} repositories | 
+                                      ${publicRepos} public | 
+                                      ${privateRepos} private | 
+                                      ${forksCount} forks | 
+                                      ${emptyRepos} empty repos | 
+                                      ${archivedRepos} archived repos`;
+        }
+
+        // Filter repositories by current tab
+        function filterRepositoriesByTab(repos) {
+            switch (currentTab) {
+                case 'public':
+                    return repos.filter(repo => !repo.private);
+                case 'private':
+                    return repos.filter(repo => repo.private);
+                case 'forks':
+                    return repos.filter(repo => repo.fork);
+                case 'archived':
+                    return repos.filter(repo => repo.archived);
+                case 'empty':
+                    return repos.filter(repo => !repo.size);
+                case 'all':
+                default:
+                    return repos;
+            }
+        }
+
+        // Function to sort and display repositories
+        function sortAndDisplayRepositories() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            let repos = [...allRepositories];
+            
+            // Apply tab filter
+            repos = filterRepositoriesByTab(repos);
+            
+            // Filter by search keyword
+            if (searchTerm) {
+                repos = repos.filter(repo => {
+                    return repo.name.toLowerCase().includes(searchTerm) || 
+                          (repo.description && repo.description.toLowerCase().includes(searchTerm));
+                });
+            }
+            
+            // Get selected sort method
+            const sortMethod = Array.from(sortOptions).find(option => option.checked).value;
+            
+            // Sort repositories
+            switch (sortMethod) {
+                case 'updated':
+                    repos.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+                    break;
+                case 'created':
+                    repos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                    break;
+                case 'name':
+                    repos.sort((a, b) => a.name.localeCompare(b.name));
+                    break;
+            }
+            
+            // Save filtered list
+            filteredRepositories = repos;
+            
+            // Display repositories
+            displayRepositories(repos);
+        }
+
+        // Update current tab
+        function updateActiveTab() {
+            // Update tab UI
+            tabs.forEach(tab => {
+                if (tab.dataset.tab === currentTab) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // Update repository list
+            sortAndDisplayRepositories();
+            
+            // Update filter bar
+            updateFilterBar();
+        }
+
+        // Update filter bar
+        function updateFilterBar() {
+            // Remove all filter tags
+            filterBar.innerHTML = '';
+            activeFilters.clear();
+            
+            // Add filter tag for current tab
+            if (currentTab !== 'all') {
+                addFilterTag(currentTab, getTabName(currentTab));
+            }
+            
+            // Show filter bar if there are any filters
+            filterBar.style.display = activeFilters.size > 0 ? 'flex' : 'none';
+        }
+
+        // Add filter tag
+        function addFilterTag(id, name) {
+            activeFilters.add(id);
+            
+            const filterTag = document.createElement('div');
+            filterTag.className = 'filter-tag';
+            filterTag.innerHTML = `
+                ${name}
+                <span class="remove" data-filter="${id}">×</span>
+            `;
+            filterBar.appendChild(filterTag);
+            
+            // Add event for removing filter
+            filterTag.querySelector('.remove').addEventListener('click', (e) => {
+                const filterId = e.target.dataset.filter;
+                if (filterId === currentTab) {
+                    // Switch to all tab
+                    currentTab = 'all';
+                    updateActiveTab();
+                }
+            });
+        }
+
+        // Get display name for tab
+        function getTabName(tabId) {
+            switch (tabId) {
+                case 'public': return 'Public';
+                case 'private': return 'Private';
+                case 'forks': return 'Forks';
+                case 'archived': return 'Archived';
+                case 'empty': return 'Empty Repos';
+                default: return 'All';
+            }
+        }
+
+        // Function to display repository list
+        function displayRepositories(repositories) {
+            if (!repositories.length) {
+                repoList.innerHTML = `<div style="padding: 20px; text-align: center;">No repositories found ${currentTab !== 'all' ? `in ${getTabName(currentTab)} tab` : ''}</div>`;
+                return;
+            }
+            
+            repoList.innerHTML = '';
+            
+            repositories.forEach(repo => {
+                const repoItem = document.createElement('div');
+                repoItem.className = 'repo-item';
+                repoItem.dataset.id = repo.id;
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'repo-checkbox';
+                checkbox.dataset.repoId = repo.id;
+                checkbox.dataset.repoName = repo.name;
+                checkbox.dataset.repoPrivate = repo.private;
+                checkbox.addEventListener('change', updateActionButtons);
+                
+                const repoInfo = document.createElement('div');
+                repoInfo.className = 'repo-info';
+                
+                const nameElement = document.createElement('div');
+                nameElement.className = 'repo-name';
+                
+                const visibilityBadge = document.createElement('span');
+                visibilityBadge.className = repo.private ? 'repo-visibility repo-private' : 'repo-visibility repo-public';
+                visibilityBadge.textContent = repo.private ? 'Private' : 'Public';
+                
+                nameElement.innerHTML = `${repo.name} ${repo.fork ? ' <span style="color:#586069">(Fork)</span>' : ''}${repo.archived ? ' <span style="color:#586069">(Archived)</span>' : ''}`;
+                nameElement.appendChild(visibilityBadge);
+                
+                if (!repo.size) {
+                    const emptyBadge = document.createElement('span');
+                    emptyBadge.className = 'badge';
+                    emptyBadge.textContent = 'Empty';
+                    nameElement.appendChild(emptyBadge);
+                }
+                
+                const dateElement = document.createElement('div');
+                dateElement.className = 'repo-date';
+                const updatedDate = new Date(repo.updated_at);
+                dateElement.textContent = `Updated: ${updatedDate.toLocaleDateString()}`;
+                
+                repoInfo.appendChild(nameElement);
+                
+                if (repo.description) {
+                    const descElement = document.createElement('div');
+                    descElement.className = 'repo-description';
+                    descElement.textContent = repo.description;
+                    repoInfo.appendChild(descElement);
+                }
+                
+                repoItem.appendChild(checkbox);
+                repoItem.appendChild(repoInfo);
+                repoItem.appendChild(dateElement);
+                repoList.appendChild(repoItem);
+            });
+            
+            updateActionButtons();
+        }
+
+        // Update action buttons status
+        function updateActionButtons() {
+            const selectedCheckboxes = document.querySelectorAll('.repo-checkbox:checked');
+            const count = selectedCheckboxes.length;
+            
+            // Update delete button
+            deleteSelectedButton.disabled = count === 0;
+            deleteSelectedButton.textContent = `Delete Selected Repos (${count})`;
+            
+            // Update visibility toggle button
+            toggleVisibilityButton.disabled = count === 0;
+            toggleVisibilityButton.textContent = `Toggle Public/Private (${count})`;
+        }
+
+        // Function to delete repository
+        async function deleteRepository(repoName) {
+            try {
+                await fetchFromGitHub(`/repos/${currentUser.login}/${repoName}`, 'DELETE');
+                return { success: true, repoName };
+            } catch (error) {
+                return { success: false, repoName, error: error.message };
+            }
+        }
+
+        // Function to update repository visibility
+        async function updateRepositoryVisibility(repoName, makePrivate) {
+            try {
+                const result = await fetchFromGitHub(`/repos/${currentUser.login}/${repoName}`, 'PATCH', {
+                    private: makePrivate
+                });
+                return { success: true, repoName, data: result };
+            } catch (error) {
+                return { success: false, repoName, error: error.message };
+            }
+        }
+
+        // Function to delete selected repositories
+        async function deleteSelectedRepositories() {
+            const selectedCheckboxes = document.querySelectorAll('.repo-checkbox:checked');
+            if (!selectedCheckboxes.length) return;
+            
+            const repoCount = selectedCheckboxes.length;
+            const repoNames = Array.from(selectedCheckboxes).map(cb => cb.dataset.repoName);
+            
+            // Set dialog parameters
+            currentAction = 'delete';
+            dialogTitle.textContent = 'Confirm repository deletion';
+            confirmActionButton.textContent = 'Delete';
+            confirmActionButton.className = 'delete';
+            
+            // Show confirmation dialog
+            confirmationDialog.style.display = 'flex';
+            confirmationMessage.innerHTML = 
+                `Are you sure you want to delete <strong>${repoCount}</strong> repositories?<br><br>` + 
+                `<div style="max-height:200px;overflow-y:auto;border:1px solid #eaecef;padding:10px;margin-bottom:10px">` +
+                repoNames.map(name => `- ${name}`).join('<br>') +
+                `</div>` +
+                `<strong>Note:</strong> This action cannot be undone.`;
+        }
+        
+        // Function to toggle repository visibility
+        async function toggleRepositoriesVisibility() {
+            const selectedCheckboxes = document.querySelectorAll('.repo-checkbox:checked');
+            if (!selectedCheckboxes.length) return;
+            
+            const repoCount = selectedCheckboxes.length;
+            
+            // Determine how many public and private repos
+            const publicRepos = Array.from(selectedCheckboxes).filter(cb => cb.dataset.repoPrivate === "false");
+            const privateRepos = Array.from(selectedCheckboxes).filter(cb => cb.dataset.repoPrivate === "true");
+            
+            // Set dialog parameters
+            currentAction = 'toggle-visibility';
+            dialogTitle.textContent = 'Confirm visibility change';
+            confirmActionButton.textContent = 'Toggle';
+            confirmActionButton.className = 'visibility';
+            
+            // Show confirmation dialog
+            confirmationDialog.style.display = 'flex';
+            
+            // Create message content
+            let message = `You will toggle the visibility of <strong>${repoCount}</strong> repositories:<br><br>`;
+            
+            if (publicRepos.length > 0) {
+                message += `<div style="margin-bottom:10px;"><strong>${publicRepos.length} public repositories will be changed to private:</strong><br>` +
+                    `<div style="max-height:100px;overflow-y:auto;border:1px solid #eaecef;padding:10px;margin:5px 0">` +
+                    publicRepos.map(cb => `- ${cb.dataset.repoName}`).join('<br>') +
+                    `</div></div>`;
+            }
+            
+            if (privateRepos.length > 0) {
+                message += `<div style="margin-bottom:10px;"><strong>${privateRepos.length} private repositories will be changed to public:</strong><br>` +
+                    `<div style="max-height:100px;overflow-y:auto;border:1px solid #eaecef;padding:10px;margin:5px 0">` +
+                    privateRepos.map(cb => `- ${cb.dataset.repoName}`).join('<br>') +
+                    `</div></div>`;
+            }
+            
+            message += `<strong>Note:</strong> Making a repository public will expose your source code to everyone.`;
+            confirmationMessage.innerHTML = message;
+        }
+
+        // Perform action after confirmation
+        async function performAction() {
+            const selectedCheckboxes = document.querySelectorAll('.repo-checkbox:checked');
+            const repoCount = selectedCheckboxes.length;
+            
+            if (currentAction === 'delete') {
+                await performDeleteAction(selectedCheckboxes, repoCount);
+            } else if (currentAction === 'toggle-visibility') {
+                await performToggleVisibilityAction(selectedCheckboxes, repoCount);
+            }
+        }
+        
+        // Perform repository deletion
+        async function performDeleteAction(selectedCheckboxes, repoCount) {
+            showLoading('Deleting repositories...');
+            isProcessing = true;
+            
+            let successCount = 0;
+            let failCount = 0;
+            const errors = [];
+            
+            for (let i = 0; i < selectedCheckboxes.length; i++) {
+                const checkbox = selectedCheckboxes[i];
+                const repoName = checkbox.dataset.repoName;
+                
+                // Update progress bar
+                updateProgress((i / repoCount) * 100);
+                loadingText.textContent = `Deleting (${i+1}/${repoCount}): ${repoName}`;
+                
+                // Perform repository deletion
+                const result = await deleteRepository(repoName);
+                
+                if (result.success) {
+                    successCount++;
+                    
+                    // Remove repository from array
+                    allRepositories = allRepositories.filter(repo => repo.name !== repoName);
+                    
+                    // Remove repository from UI
+                    const repoItem = document.querySelector(`.repo-item[data-id="${checkbox.dataset.repoId}"]`);
+                    if (repoItem) {
+                        repoItem.remove();
+                    }
+                } else {
+                    failCount++;
+                    errors.push({ repoName, error: result.error });
+                }
+                
+                // Add a small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            // Update UI after completion
+            updateProgress(100);
+            updateSummary();
+            updateActionButtons();
+            hideLoading();
+            isProcessing = false;
+            
+            // Display results
+            statusBar.style.display = 'block';
+            if (failCount === 0) {
+                statusBar.innerHTML = `✅ Successfully deleted ${successCount} repositories.`;
+                statusBar.style.backgroundColor = '#e6ffed';
+            } else {
+                statusBar.innerHTML = `⚠️ Deleted ${successCount} repositories, ${failCount} errors.<br>` +
+                    errors.map(e => `- ${e.repoName}: ${e.error}`).join('<br>');
+                statusBar.style.backgroundColor = '#fff5b1';
+            }
+            
+            // Refresh list if needed
+            if (failCount > 0 || allRepositories.length === 0) {
+                sortAndDisplayRepositories();
+            }
+        }
+        
+        // Perform visibility toggle
+        async function performToggleVisibilityAction(selectedCheckboxes, repoCount) {
+            showLoading('Toggling visibility...');
+            isProcessing = true;
+            
+            let successCount = 0;
+            let failCount = 0;
+            const errors = [];
+            const updatedRepos = [];
+            
+            for (let i = 0; i < selectedCheckboxes.length; i++) {
+                const checkbox = selectedCheckboxes[i];
+                const repoName = checkbox.dataset.repoName;
+                const isCurrentlyPrivate = checkbox.dataset.repoPrivate === "true";
+                
+                // Update progress bar
+                updateProgress((i / repoCount) * 100);
+                loadingText.textContent = `Toggling (${i+1}/${repoCount}): ${repoName}`;
+                
+                // Perform visibility update
+                const result = await updateRepositoryVisibility(repoName, !isCurrentlyPrivate);
+                
+                if (result.success) {
+                    successCount++;
+                    
+                    // Update repository info in array
+                    const repoIndex = allRepositories.findIndex(repo => repo.name === repoName);
+                    if (repoIndex !== -1) {
+                        allRepositories[repoIndex].private = !isCurrentlyPrivate;
+                        updatedRepos.push(allRepositories[repoIndex]);
+                    }
+                } else {
+                    failCount++;
+                    errors.push({ repoName, error: result.error });
+                }
+                
+                // Add a small delay to avoid rate limiting
+                await new Promise(resolve => setTimeout(resolve, 200));
+            }
+            
+            // Update UI after completion
+            updateProgress(100);
+            updateSummary();
+            hideLoading();
+            isProcessing = false;
+            
+            // Display results
+            statusBar.style.display = 'block';
+            if (failCount === 0) {
+                statusBar.innerHTML = `✅ Successfully toggled visibility for ${successCount} repositories.`;
+                statusBar.style.backgroundColor = '#e6ffed';
+            } else {
+                statusBar.innerHTML = `⚠️ Toggled visibility for ${successCount} repositories, ${failCount} errors.<br>` +
+                    errors.map(e => `- ${e.repoName}: ${e.error}`).join('<br>');
+                statusBar.style.backgroundColor = '#fff5b1';
+            }
+            
+            // Refresh list
+            sortAndDisplayRepositories();
+        }
+
+        // Show loading status
+        function showLoading(message = 'Processing...') {
+            loadingOverlay.style.display = 'flex';
+            loadingText.textContent = message;
+            updateProgress(0);
+        }
+
+        // Hide loading status
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+        }
+
+        // Show error
+        function showError(message) {
+            tokenError.textContent = message;
+            tokenError.style.display = 'block';
+            setTimeout(() => {
+                tokenError.style.display = 'none';
+            }, 5000);
+        }
+
+        // Update progress bar
+        function updateProgress(percent) {
+            progressBar.style.width = `${percent}%`;
+        }
+
+        // Check token permissions
+        async function checkTokenScopes() {
+            try {
+                // Get current token information
+                const response = await fetch(`${githubApiBaseUrl}/user`, {
+                    headers: {
+                        'Authorization': `token ${tokenInput.value.trim()}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Invalid token: ${response.statusText}`);
+                }
+                
+                // Check header for scopes
+                const scopesHeader = response.headers.get('X-OAuth-Scopes');
+                if (!scopesHeader) {
+                    return [];
+                }
+                
+                // Parse scopes
+                const scopes = scopesHeader.split(',').map(s => s.trim());
+                return scopes;
+            } catch (error) {
+                showError(error.message);
+                return [];
+            }
+        }
+
+        // Event handlers
+        fetchReposButton.addEventListener('click', async () => {
+            tokenError.style.display = 'none';
+            
+            try {
+                // Check token scopes
+                const scopes = await checkTokenScopes();
+                const hasDeleteScope = scopes.includes(TOKEN_SCOPES.DELETE_REPO) || scopes.includes('delete:packages') || scopes.includes('delete:org') || scopes.includes('delete:project');
+                const hasRepoScope = scopes.includes(TOKEN_SCOPES.REPO) || scopes.includes('repo:status') || scopes.includes('repo_deployment') || scopes.includes('public_repo');
+                
+                if (!hasDeleteScope && !hasRepoScope) {
+                    showError('Your token is missing required permissions. Please create a token with delete_repo and repo permissions');
+                    return;
+                }
+                
+                if (!hasDeleteScope) {
+                    showError('Your token is missing delete_repo permission. You cannot delete repositories.');
+                    deleteSelectedButton.disabled = true;
+                }
+                
+                if (!hasRepoScope) {
+                    showError('Your token is missing repo permission. You cannot toggle repository visibility.');
+                    toggleVisibilityButton.disabled = true;
+                }
+                
+                const user = await fetchCurrentUser();
+                if (user) {
+                    await fetchRepositories();
+                }
+            } catch (error) {
+                showError(error.message);
+            }
+        });
+
+        // Selection button event handlers
+        selectAllButton.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.repo-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateActionButtons();
+        });
+
+        selectNoneButton.addEventListener('click', () => {
+            const checkboxes = document.querySelectorAll('.repo-checkbox');
+            checkboxes.forEach(cb => cb.checked = false);
+            updateActionButtons();
+        });
+
+        selectForksButton.addEventListener('click', () => {
+            const forkCheckboxes = Array.from(document.querySelectorAll('.repo-checkbox'))
+                .filter(cb => {
+                    const repoId = cb.dataset.repoId;
+                    const repo = allRepositories.find(r => r.id.toString() === repoId);
+                    return repo && repo.fork;
+                });
+            
+            forkCheckboxes.forEach(cb => cb.checked = true);
+            updateActionButtons();
+        });
+
+        selectEmptyButton.addEventListener('click', () => {
+            const emptyCheckboxes = Array.from(document.querySelectorAll('.repo-checkbox'))
+                .filter(cb => {
+                    const repoId = cb.dataset.repoId;
+                    const repo = allRepositories.find(r => r.id.toString() === repoId);
+                    return repo && !repo.size;
+                });
+            
+            emptyCheckboxes.forEach(cb => cb.checked = true);
+            updateActionButtons();
+        });
+
+        selectArchivedButton.addEventListener('click', () => {
+            const archivedCheckboxes = Array.from(document.querySelectorAll('.repo-checkbox'))
+                .filter(cb => {
+                    const repoId = cb.dataset.repoId;
+                    const repo = allRepositories.find(r => r.id.toString() === repoId);
+                    return repo && repo.archived;
+                });
+            
+            archivedCheckboxes.forEach(cb => cb.checked = true);
+            updateActionButtons();
+        });
+
+        selectPublicButton.addEventListener('click', () => {
+            const publicCheckboxes = Array.from(document.querySelectorAll('.repo-checkbox'))
+                .filter(cb => cb.dataset.repoPrivate === "false");
+            
+            publicCheckboxes.forEach(cb => cb.checked = true);
+            updateActionButtons();
+        });
+
+        selectPrivateButton.addEventListener('click', () => {
+            const privateCheckboxes = Array.from(document.querySelectorAll('.repo-checkbox'))
+                .filter(cb => cb.dataset.repoPrivate === "true");
+            
+            privateCheckboxes.forEach(cb => cb.checked = true);
+            updateActionButtons();
+        });
+
+        // Search handler
+        searchInput.addEventListener('input', sortAndDisplayRepositories);
+
+        // Sort handler
+        sortOptions.forEach(option => {
+            option.addEventListener('change', sortAndDisplayRepositories);
+        });
+
+        // Tab handler
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                currentTab = tab.dataset.tab;
+                updateActiveTab();
+            });
+        });
+
+        // Delete button handler
+        deleteSelectedButton.addEventListener('click', deleteSelectedRepositories);
+
+        // Toggle visibility button handler
+        toggleVisibilityButton.addEventListener('click', toggleRepositoriesVisibility);
+        
+        // Confirmation dialog handlers
+        cancelActionButton.addEventListener('click', () => {
+            confirmationDialog.style.display = 'none';
+        });
+
+        confirmActionButton.addEventListener('click', () => {
+            confirmationDialog.style.display = 'none';
+            performAction();
+        });
+
+        // Allow Enter key to fetch repositories
+        tokenInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchReposButton.click();
+            }
+        });
+    </script>
+</body>
+</html>
